@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penjemputan Laundry</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+        #map {
+            height: calc(100vh - 70px);
+            width: 100%;
+        }
+        .form-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            width: 300px;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Penjemputan Mami Laundry</h1>
+    <div id="map"></div>
+
+    <div id="form-container" class="form-container" style="display: none;">
+        <button class="close-btn" onclick="closeForm()">&times;</button>
+        <h2>Formulir Penjemputan</h2>
+        <form id="pickupForm">
+            <label for="name">Nama:</label>
+            <input type="text" id="name" class="form-control mb-2" required>
+            <label for="whatsapp">Nomor WhatsApp:</label>
+            <input type="text" id="whatsapp" class="form-control mb-2" required>
+            <button type="submit" class="btn btn-primary w-100">Kirim Data</button>
+        </form>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([-5.168855, 119.448868], 18);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        let marker;
+        map.on('click', function (e) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            marker = L.marker(e.latlng).addTo(map);
+            selectedLatLng = e.latlng;
+
+            document.getElementById('form-container').style.display = 'block';
+        });
+
+        let selectedLatLng = null;
+        document.getElementById('pickupForm').onsubmit = function (event) {
+            event.preventDefault();
+            if (!selectedLatLng) {
+                alert('Silakan pilih lokasi di peta terlebih dahulu!');
+                return;
+            }
+
+            const name = document.getElementById('name').value.trim();
+            const whatsapp = document.getElementById('whatsapp').value.trim();
+
+            if (!name || whatsapp.length < 8) {
+                alert('Nama atau Nomor WhatsApp tidak valid!');
+                return;
+            }
+
+            fetch('submit.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `name=${encodeURIComponent(name)}&whatsapp=${encodeURIComponent(whatsapp)}&lat=${selectedLatLng.lat}&lng=${selectedLatLng.lng}`,
+            })
+                .then(response => response.text())
+                .then(data => {
+                    alert('Data berhasil dikirim!');
+                    document.getElementById('pickupForm').reset();
+                    document.getElementById('form-container').style.display = 'none';
+                })
+                .catch(error => console.error('Error:', error));
+        };
+
+        function closeForm() {
+            document.getElementById('form-container').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
